@@ -14,6 +14,18 @@ class PlaceResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'type' => 'Feature',
+            'geometry' => $this->geometry,
+            'properties' => array_merge(
+                [
+                    'name' => $this->name,
+                ],
+                $this->properties ?? []
+            ),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
     }
 }
