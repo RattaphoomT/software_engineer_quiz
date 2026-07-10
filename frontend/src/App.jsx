@@ -15,8 +15,7 @@ function App() {
   const [form, setForm] = useState({
     name: "",
     geometryType: "Point",
-    longitude: "",
-    latitude: "",
+    coordinates: "[102.822281, 16.474635]",
     province: "",
     category: "",
   });
@@ -76,12 +75,17 @@ function App() {
   };
 
   const buildGeometry = () => {
-    const longitude = Number(form.longitude);
-    const latitude = Number(form.latitude);
+    let parsedCoordinates;
+
+    try {
+      parsedCoordinates = JSON.parse(form.coordinates);
+    } catch {
+      throw new Error("Coordinates must be valid JSON.");
+    }
 
     return {
-      type: "Point",
-      coordinates: [longitude, latitude],
+      type: form.geometryType,
+      coordinates: parsedCoordinates,
     };
   };
 
@@ -89,8 +93,7 @@ function App() {
     setForm({
       name: "",
       geometryType: "Point",
-      longitude: "",
-      latitude: "",
+      coordinates: "[102.822281, 16.474635]",
       province: "",
       category: "",
     });
@@ -101,11 +104,11 @@ function App() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!form.name || !form.longitude || !form.latitude) {
+    if (!form.name || !form.coordinates) {
       Swal.fire({
         icon: "warning",
         title: "Missing information",
-        text: "Please fill name, longitude and latitude.",
+        text: "Please fill name and coordinates.",
         confirmButtonText: "OK",
       });
       return;
@@ -135,7 +138,9 @@ function App() {
       console.error("Failed to save place:", error.response?.data || error);
 
       const errorMessage =
-        error.response?.data?.message || "Failed to save place.";
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to save place.";
 
       showError(errorMessage);
     }
@@ -168,23 +173,12 @@ function App() {
   };
 
   const handleEdit = (place) => {
-    if (place.geometry?.type !== "Point") {
-      Swal.fire({
-        icon: "info",
-        title: "Point only",
-        text: "Inline edit currently supports Point features only.",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
     setEditingPlaceId(place.id);
 
     setForm({
       name: place.properties?.name || "",
       geometryType: place.geometry?.type || "Point",
-      longitude: place.geometry?.coordinates?.[0] ?? "",
-      latitude: place.geometry?.coordinates?.[1] ?? "",
+      coordinates: JSON.stringify(place.geometry?.coordinates || [], null, 2),
       province: place.properties?.province || "",
       category: place.properties?.category || "",
     });

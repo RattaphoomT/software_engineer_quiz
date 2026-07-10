@@ -42,7 +42,11 @@ function MapView({ places }) {
           id: "places-points",
           type: "circle",
           source: "places",
-          filter: ["==", ["geometry-type"], "Point"],
+          filter: [
+            "any",
+            ["==", ["geometry-type"], "Point"],
+            ["==", ["geometry-type"], "MultiPoint"],
+          ],
           paint: {
             "circle-radius": 7,
             "circle-stroke-width": 2,
@@ -54,7 +58,11 @@ function MapView({ places }) {
           id: "places-lines",
           type: "line",
           source: "places",
-          filter: ["==", ["geometry-type"], "LineString"],
+          filter: [
+            "any",
+            ["==", ["geometry-type"], "LineString"],
+            ["==", ["geometry-type"], "MultiLineString"],
+          ],
           paint: {
             "line-width": 4,
           },
@@ -71,10 +79,28 @@ function MapView({ places }) {
         });
 
         map.addLayer({
+          id: "places-polygons",
+          type: "fill",
+          source: "places",
+          filter: [
+            "any",
+            ["==", ["geometry-type"], "Polygon"],
+            ["==", ["geometry-type"], "MultiPolygon"],
+          ],
+          paint: {
+            "fill-opacity": 0.4,
+          },
+        });
+
+        map.addLayer({
           id: "places-polygons-outline",
           type: "line",
           source: "places",
-          filter: ["==", ["geometry-type"], "Polygon"],
+          filter: [
+            "any",
+            ["==", ["geometry-type"], "Polygon"],
+            ["==", ["geometry-type"], "MultiPolygon"],
+          ],
           paint: {
             "line-width": 2,
           },

@@ -39,8 +39,11 @@ function SearchFilter({
           >
             <option value="">All Types</option>
             <option value="Point">Point</option>
+            <option value="MultiPoint">MultiPoint</option>
             <option value="LineString">LineString</option>
+            <option value="MultiLineString">MultiLineString</option>
             <option value="Polygon">Polygon</option>
+            <option value="MultiPolygon">MultiPolygon</option>
           </select>
         </div>
 
