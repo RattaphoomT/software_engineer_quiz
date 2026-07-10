@@ -1,4 +1,13 @@
-function AddPlaceForm({ form, isEditing, onChange, onSubmit, onCancelEdit }) {
+function AddPlaceForm({
+  form,
+  isEditing,
+  onChange,
+  onPointChange,
+  onAddPoint,
+  onRemovePoint,
+  onSubmit,
+  onCancelEdit,
+}) {
   const getCoordinateExample = (type) => {
     const examples = {
       Point: "[102.822281, 16.474635]",
@@ -66,38 +75,93 @@ function AddPlaceForm({ form, isEditing, onChange, onSubmit, onCancelEdit }) {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
-            Coordinates JSON
-          </label>
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Coordinates
+              </label>
+              <p className="mt-1 text-xs text-slate-400">
+                Enter longitude and latitude for each point.
+              </p>
+            </div>
 
-          <textarea
-            name="coordinates"
-            value={form.coordinates}
-            onChange={onChange}
-            rows={6}
-            placeholder="[102.822281, 16.474635]"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-          />
+            {form.geometryType !== "Point" && (
+              <button
+                type="button"
+                onClick={onAddPoint}
+                className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
+              >
+                + Add Point
+              </button>
+            )}
+          </div>
 
-          <button
-            type="button"
-            onClick={() =>
-              onChange({
-                target: {
-                  name: "coordinates",
-                  value: getCoordinateExample(form.geometryType),
-                },
-              })
-            }
-            className="mt-2 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
-          >
-            Use Example Coordinates
-          </button>
+          <div className="space-y-3">
+            {form.points.map((point, index) => (
+              <div
+                key={index}
+                className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Point {index + 1}
+                  </p>
 
-          <p className="mt-1 text-xs text-slate-400">
-            Use GeoJSON coordinates format. Example Point: [102.822281,
-            16.474635]
-          </p>
+                  {form.geometryType !== "Point" && form.points.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => onRemovePoint(index)}
+                      className="text-xs font-semibold text-red-600 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">
+                      Longitude
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={point.longitude}
+                      onChange={(event) =>
+                        onPointChange(index, "longitude", event.target.value)
+                      }
+                      placeholder="102.822281"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">
+                      Latitude
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={point.latitude}
+                      onChange={(event) =>
+                        onPointChange(index, "latitude", event.target.value)
+                      }
+                      placeholder="16.474635"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {(form.geometryType === "Polygon" ||
+            form.geometryType === "MultiPolygon") && (
+            <p className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
+              Polygon will be closed automatically by connecting the last point
+              back to the first point.
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">

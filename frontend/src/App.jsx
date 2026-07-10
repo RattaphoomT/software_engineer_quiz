@@ -15,7 +15,12 @@ function App() {
   const [form, setForm] = useState({
     name: "",
     geometryType: "Point",
-    coordinates: "[102.822281, 16.474635]",
+    points: [
+      {
+        longitude: "102.822281",
+        latitude: "16.474635",
+      },
+    ],
     province: "",
     category: "",
   });
@@ -65,8 +70,60 @@ function App() {
     fetchPlaces();
   }, [search, geometryTypeFilter]);
 
+  const handlePointChange = (index, field, value) => {
+    setForm((prev) => {
+      const updatedPoints = [...prev.points];
+
+      updatedPoints[index] = {
+        ...updatedPoints[index],
+        [field]: value,
+      };
+
+      return {
+        ...prev,
+        points: updatedPoints,
+      };
+    });
+  };
+
+  const addPoint = () => {
+    setForm((prev) => ({
+      ...prev,
+      points: [
+        ...prev.points,
+        {
+          longitude: "",
+          latitude: "",
+        },
+      ],
+    }));
+  };
+
+  const removePoint = (index) => {
+    setForm((prev) => {
+      if (prev.points.length <= 1) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        points: prev.points.filter((_, pointIndex) => pointIndex !== index),
+      };
+    });
+  };
+
   const handleChange = (event) => {
     const { name, value } = event.target;
+
+    if (name === "geometryType") {
+      setForm((prev) => ({
+        ...prev,
+        geometryType: value,
+        points: getDefaultPointsByGeometryType(value),
+      }));
+
+      return;
+    }
 
     setForm((prev) => ({
       ...prev,
@@ -75,25 +132,140 @@ function App() {
   };
 
   const buildGeometry = () => {
-    let parsedCoordinates;
+    const coordinates = form.points.map((point) => [
+      Number(point.longitude),
+      Number(point.latitude),
+    ]);
 
-    try {
-      parsedCoordinates = JSON.parse(form.coordinates);
-    } catch {
-      throw new Error("Coordinates must be valid JSON.");
+    const hasInvalidPoint = coordinates.some(
+      ([longitude, latitude]) =>
+        Number.isNaN(longitude) || Number.isNaN(latitude),
+    );
+
+    if (hasInvalidPoint) {
+      throw new Error(
+        "All longitude and latitude values must be valid numbers.",
+      );
     }
 
-    return {
-      type: form.geometryType,
-      coordinates: parsedCoordinates,
-    };
+    if (form.geometryType === "Point") {
+      if (coordinates.length !== 1) {
+        throw new Error("Point requires exactly 1 coordinate.");
+      }
+
+      return {
+        type: "Point",
+        coordinates: coordinates[0],
+      };
+    }
+
+    if (form.geometryType === "MultiPoint") {
+      return {
+        type: "MultiPoint",
+        coordinates,
+      };
+    }
+
+    if (form.geometryType === "LineString") {
+      if (coordinates.length < 2) {
+        throw new Error("LineString requires at least 2 coordinates.");
+      }
+
+      return {
+        type: "LineString",
+        coordinates,
+      };
+    }
+
+    if (form.geometryType === "MultiLineString") {
+      if (coordinates.length < 2) {
+        throw new Error("MultiLineString requires at least 2 coordinates.");
+      }
+
+      return {
+        type: "MultiLineString",
+        coordinates: [coordinates],
+      };
+    }
+
+    if (form.geometryType === "Polygon") {
+      if (coordinates.length < 4) {
+        throw new Error("Polygon requires at least 4 coordinates.");
+      }
+
+      const firstPoint = coordinates[0];
+      const lastPoint = coordinates[coordinates.length - 1];
+
+      const isClosed =
+        firstPoint[0] === lastPoint[0] && firstPoint[1] === lastPoint[1];
+
+      const closedRing = isClosed ? coordinates : [...coordinates, firstPoint];
+
+      return {
+        type: "Polygon",
+        coordinates: [closedRing],
+      };
+    }
+
+    if (form.geometryType === "MultiPolygon") {
+      if (coordinates.length < 4) {
+        throw new Error("MultiPolygon requires at least 4 coordinates.");
+      }
+
+      const firstPoint = coordinates[0];
+      const lastPoint = coordinates[coordinates.length - 1];
+
+      const isClosed =
+        firstPoint[0] === lastPoint[0] && firstPoint[1] === lastPoint[1];
+
+      const closedRing = isClosed ? coordinates : [...coordinates, firstPoint];
+
+      return {
+        type: "MultiPolygon",
+        coordinates: [[closedRing]],
+      };
+    }
+
+    throw new Error("Unsupported geometry type.");
+  };
+
+  const getDefaultPointsByGeometryType = (geometryType) => {
+    if (geometryType === "Point") {
+      return [{ longitude: "102.822281", latitude: "16.474635" }];
+    }
+
+    if (geometryType === "MultiPoint") {
+      return [
+        { longitude: "102.822281", latitude: "16.474635" },
+        { longitude: "102.835000", latitude: "16.480000" },
+      ];
+    }
+
+    if (geometryType === "LineString" || geometryType === "MultiLineString") {
+      return [
+        { longitude: "102.822281", latitude: "16.474635" },
+        { longitude: "102.835000", latitude: "16.480000" },
+        { longitude: "102.845000", latitude: "16.490000" },
+      ];
+    }
+
+    if (geometryType === "Polygon" || geometryType === "MultiPolygon") {
+      return [
+        { longitude: "102.820000", latitude: "16.470000" },
+        { longitude: "102.830000", latitude: "16.470000" },
+        { longitude: "102.830000", latitude: "16.480000" },
+        { longitude: "102.820000", latitude: "16.480000" },
+      ];
+    }
+
+    return [{ longitude: "102.822281", latitude: "16.474635" }];
   };
 
   const resetForm = () => {
     setForm({
       name: "",
       geometryType: "Point",
-      coordinates: "[102.822281, 16.474635]",
+      points: getDefaultPointsByGeometryType("Point"),
       province: "",
       category: "",
     });
@@ -104,11 +276,11 @@ function App() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!form.name || !form.coordinates) {
+    if (!form.name || form.points.length === 0) {
       Swal.fire({
         icon: "warning",
         title: "Missing information",
-        text: "Please fill name and coordinates.",
+        text: "Please fill place name and coordinates.",
         confirmButtonText: "OK",
       });
       return;
@@ -172,13 +344,62 @@ function App() {
     }
   };
 
+  const convertGeometryToPoints = (geometry) => {
+    if (!geometry) {
+      return getDefaultPointsByGeometryType("Point");
+    }
+
+    if (geometry.type === "Point") {
+      return [
+        {
+          longitude: String(geometry.coordinates?.[0] ?? ""),
+          latitude: String(geometry.coordinates?.[1] ?? ""),
+        },
+      ];
+    }
+
+    if (geometry.type === "MultiPoint" || geometry.type === "LineString") {
+      return (geometry.coordinates || []).map(([longitude, latitude]) => ({
+        longitude: String(longitude),
+        latitude: String(latitude),
+      }));
+    }
+
+    if (geometry.type === "MultiLineString") {
+      return (geometry.coordinates?.[0] || []).map(([longitude, latitude]) => ({
+        longitude: String(longitude),
+        latitude: String(latitude),
+      }));
+    }
+
+    if (geometry.type === "Polygon") {
+      const ring = geometry.coordinates?.[0] || [];
+
+      return ring.slice(0, -1).map(([longitude, latitude]) => ({
+        longitude: String(longitude),
+        latitude: String(latitude),
+      }));
+    }
+
+    if (geometry.type === "MultiPolygon") {
+      const ring = geometry.coordinates?.[0]?.[0] || [];
+
+      return ring.slice(0, -1).map(([longitude, latitude]) => ({
+        longitude: String(longitude),
+        latitude: String(latitude),
+      }));
+    }
+
+    return getDefaultPointsByGeometryType("Point");
+  };
+
   const handleEdit = (place) => {
     setEditingPlaceId(place.id);
 
     setForm({
       name: place.properties?.name || "",
       geometryType: place.geometry?.type || "Point",
-      coordinates: JSON.stringify(place.geometry?.coordinates || [], null, 2),
+      points: convertGeometryToPoints(place.geometry),
       province: place.properties?.province || "",
       category: place.properties?.category || "",
     });
@@ -235,6 +456,9 @@ function App() {
             form={form}
             isEditing={Boolean(editingPlaceId)}
             onChange={handleChange}
+            onPointChange={handlePointChange}
+            onAddPoint={addPoint}
+            onRemovePoint={removePoint}
             onSubmit={handleSubmit}
             onCancelEdit={resetForm}
           />
