@@ -18,22 +18,58 @@ class PlaceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Place::query();
-        //bunus
+
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
-        //bunus
+
         if ($request->filled('geometry_type')) {
             $query->where('geometry->type', $request->geometry_type);
         }
 
+        if ($request->filled('category')) {
+            $query->where('properties->category', $request->category);
+        }
+
+        $perPage = (int) $request->get('per_page', 10);
+
+        $perPage = min(max($perPage, 1), 50);
+
         $places = $query
             ->latest()
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
             'type' => 'FeatureCollection',
-            'features' => PlaceResource::collection($places),
+            'features' => PlaceResource::collection($places->items()),
+            'meta' => [
+                'current_page' => $places->currentPage(),
+                'per_page' => $places->perPage(),
+                'total' => $places->total(),
+                'last_page' => $places->lastPage(),
+                'from' => $places->firstItem(),
+                'to' => $places->lastItem(),
+            ],
+            'links' => [
+                'first' => $places->url(1),
+                'last' => $places->url($places->lastPage()),
+                'prev' => $places->previousPageUrl(),
+                'next' => $places->nextPageUrl(),
+            ],
+        ]);
+    }
+
+    public function categories(): JsonResponse
+    {
+        $categories = Place::query()
+            ->get()
+            ->map(fn ($place) => $place->properties['category'] ?? null)
+            ->filter()
+            ->unique()
+            ->values();
+
+        return response()->json([
+            'data' => $categories,
         ]);
     }
 

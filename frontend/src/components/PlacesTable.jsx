@@ -1,4 +1,11 @@
-function PlacesTable({ places, loading, onEdit, onDelete }) {
+function PlacesTable({
+  places,
+  loading,
+  pagination,
+  onPageChange,
+  onEdit,
+  onDelete,
+}) {
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
       <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
@@ -17,7 +24,7 @@ function PlacesTable({ places, loading, onEdit, onDelete }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-[760px] divide-y divide-slate-200">
+        <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
               <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -103,6 +110,47 @@ function PlacesTable({ places, loading, onEdit, onDelete }) {
             )}
           </tbody>
         </table>
+      </div>
+      <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-500">
+          Showing{" "}
+          <span className="font-semibold text-slate-700">
+            {pagination.from || 0}
+          </span>{" "}
+          to{" "}
+          <span className="font-semibold text-slate-700">
+            {pagination.to || 0}
+          </span>{" "}
+          of{" "}
+          <span className="font-semibold text-slate-700">
+            {pagination.total || 0}
+          </span>{" "}
+          results
+        </p>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={pagination.current_page <= 1}
+            onClick={() => onPageChange(pagination.current_page - 1)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Previous
+          </button>
+
+          <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">
+            Page {pagination.current_page || 1} / {pagination.last_page || 1}
+          </span>
+
+          <button
+            type="button"
+            disabled={pagination.current_page >= pagination.last_page}
+            onClick={() => onPageChange(pagination.current_page + 1)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </section>
   );

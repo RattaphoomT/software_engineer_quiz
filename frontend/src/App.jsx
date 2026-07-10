@@ -12,13 +12,30 @@ function App() {
   const [search, setSearch] = useState("");
   const [geometryTypeFilter, setGeometryTypeFilter] = useState("");
 
+  const [categories, setCategories] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get("/places/categories");
+      setCategories(response.data.data || []);
+    } catch (error) {
+      console.error(
+        "Failed to fetch categories:",
+        error.response?.data || error,
+      );
+    }
+  };
+
   const [form, setForm] = useState({
     name: "",
     geometryType: "Point",
     points: [
       {
-        longitude: "102.822281",
-        latitude: "16.474635",
+        longitude: "",
+        latitude: "",
       },
     ],
     province: "",
@@ -46,6 +63,15 @@ function App() {
 
   const [editingPlaceId, setEditingPlaceId] = useState(null);
 
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    per_page: 10,
+    total: 0,
+    last_page: 1,
+    from: null,
+    to: null,
+  });
+
   const fetchPlaces = async () => {
     try {
       setLoading(true);
@@ -54,8 +80,24 @@ function App() {
         params: {
           search: search || undefined,
           geometry_type: geometryTypeFilter || undefined,
+          category: categoryFilter || undefined,
+          page,
+          per_page: perPage,
         },
       });
+
+      setPlaces(response.data.features || []);
+
+      setPagination(
+        response.data.meta || {
+          current_page: 1,
+          per_page: perPage,
+          total: 0,
+          last_page: 1,
+          from: null,
+          to: null,
+        },
+      );
 
       setPlaces(response.data.features || []);
     } catch (error) {
@@ -68,7 +110,15 @@ function App() {
 
   useEffect(() => {
     fetchPlaces();
-  }, [search, geometryTypeFilter]);
+  }, [search, geometryTypeFilter, categoryFilter, page, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, geometryTypeFilter, categoryFilter, perPage]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const handlePointChange = (index, field, value) => {
     setForm((prev) => {
@@ -132,6 +182,14 @@ function App() {
   };
 
   const buildGeometry = () => {
+    const hasEmptyPoint = form.points.some(
+      (point) => point.longitude === "" || point.latitude === "",
+    );
+
+    if (hasEmptyPoint) {
+      throw new Error("Please fill longitude and latitude for every point.");
+    }
+
     const coordinates = form.points.map((point) => [
       Number(point.longitude),
       Number(point.latitude),
@@ -231,34 +289,33 @@ function App() {
 
   const getDefaultPointsByGeometryType = (geometryType) => {
     if (geometryType === "Point") {
-      return [{ longitude: "102.822281", latitude: "16.474635" }];
+      return [{ longitude: "", latitude: "" }];
     }
 
     if (geometryType === "MultiPoint") {
       return [
-        { longitude: "102.822281", latitude: "16.474635" },
-        { longitude: "102.835000", latitude: "16.480000" },
+        { longitude: "", latitude: "" },
+        { longitude: "", latitude: "" },
       ];
     }
 
     if (geometryType === "LineString" || geometryType === "MultiLineString") {
       return [
-        { longitude: "102.822281", latitude: "16.474635" },
-        { longitude: "102.835000", latitude: "16.480000" },
-        { longitude: "102.845000", latitude: "16.490000" },
+        { longitude: "", latitude: "" },
+        { longitude: "", latitude: "" },
       ];
     }
 
     if (geometryType === "Polygon" || geometryType === "MultiPolygon") {
       return [
-        { longitude: "102.820000", latitude: "16.470000" },
-        { longitude: "102.830000", latitude: "16.470000" },
-        { longitude: "102.830000", latitude: "16.480000" },
-        { longitude: "102.820000", latitude: "16.480000" },
+        { longitude: "", latitude: "" },
+        { longitude: "", latitude: "" },
+        { longitude: "", latitude: "" },
+        { longitude: "", latitude: "" },
       ];
     }
 
-    return [{ longitude: "102.822281", latitude: "16.474635" }];
+    return [{ longitude: "", latitude: "" }];
   };
 
   const resetForm = () => {
@@ -450,8 +507,8 @@ function App() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="space-y-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
           <AddPlaceForm
             form={form}
             isEditing={Boolean(editingPlaceId)}
@@ -463,26 +520,44 @@ function App() {
             onCancelEdit={resetForm}
           />
 
+          <div className="min-w-0">
+            <MapView
+              places={places}
+              categories={categories}
+              selectedCategory={categoryFilter}
+            />
+          </div>
+        </section>
+
+        <section className="mt-6 space-y-6">
           <SearchFilter
             search={search}
             geometryTypeFilter={geometryTypeFilter}
+            categoryFilter={categoryFilter}
+            categories={categories}
+            perPage={perPage}
             onSearchChange={(event) => setSearch(event.target.value)}
             onGeometryTypeFilterChange={(event) =>
               setGeometryTypeFilter(event.target.value)
             }
+            onCategoryFilterChange={(event) =>
+              setCategoryFilter(event.target.value)
+            }
+            onPerPageChange={(event) => setPerPage(Number(event.target.value))}
             onReset={() => {
               setSearch("");
               setGeometryTypeFilter("");
+              setCategoryFilter("");
+              setPerPage(10);
+              setPage(1);
             }}
           />
-        </aside>
-
-        <section className="min-w-0 space-y-6">
-          <MapView places={places} />
 
           <PlacesTable
             places={places}
             loading={loading}
+            pagination={pagination}
+            onPageChange={setPage}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
