@@ -1,4 +1,5 @@
 function SearchFilter({
+  variant = "panel",
   search,
   geometryTypeFilter,
   categoryFilter,
@@ -10,18 +11,39 @@ function SearchFilter({
   onPerPageChange,
   onReset,
 }) {
-  return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <div className="mb-5">
-        <h2 className="text-lg font-bold text-slate-950">Search & Filter</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Filter features by name and geometry type.
-        </p>
-      </div>
+  const isBar = variant === "bar";
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_220px_140px_140px] lg:items-end">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
+  return (
+    <section
+      className={
+        isBar
+          ? "rounded-xl bg-white/95 p-2 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur"
+          : "rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200"
+      }
+    >
+      {!isBar && (
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-slate-950">
+            Search & Filter
+          </h2>
+        </div>
+      )}
+
+      <div
+        className={
+          isBar
+            ? "grid grid-cols-2 gap-2 md:grid-cols-[minmax(180px,1fr)_minmax(118px,136px)_minmax(130px,160px)] lg:grid-cols-[minmax(220px,1fr)_minmax(132px,150px)_minmax(150px,180px)_96px_auto] lg:items-center xl:grid-cols-[minmax(320px,1fr)_160px_200px_104px_auto]"
+            : "grid grid-cols-2 gap-3"
+        }
+      >
+        <div className={isBar ? "col-span-2 md:col-span-1" : "col-span-2"}>
+          <label
+            className={
+              isBar
+                ? "sr-only"
+                : "mb-1 block text-xs font-medium text-slate-600"
+            }
+          >
             Search by name
           </label>
           <input
@@ -29,18 +51,24 @@ function SearchFilter({
             value={search}
             onChange={onSearchChange}
             placeholder="Search place name..."
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
+        <div className={isBar ? "min-w-0" : "col-span-2 sm:col-span-1"}>
+          <label
+            className={
+              isBar
+                ? "sr-only"
+                : "mb-1 block text-xs font-medium text-slate-600"
+            }
+          >
             Geometry Type
           </label>
           <select
             value={geometryTypeFilter}
             onChange={onGeometryTypeFilterChange}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           >
             <option value="">All Types</option>
             <option value="Point">Point</option>
@@ -52,14 +80,20 @@ function SearchFilter({
           </select>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
-            Collection / Category
+        <div className={isBar ? "min-w-0" : "col-span-2 sm:col-span-1"}>
+          <label
+            className={
+              isBar
+                ? "sr-only"
+                : "mb-1 block text-xs font-medium text-slate-600"
+            }
+          >
+            Category
           </label>
           <select
             value={categoryFilter}
             onChange={onCategoryFilterChange}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           >
             <option value="">All Collections</option>
             {categories.map((category) => (
@@ -70,14 +104,20 @@ function SearchFilter({
           </select>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
+        <div className={isBar ? "min-w-0 md:col-span-1 lg:col-span-1" : ""}>
+          <label
+            className={
+              isBar
+                ? "sr-only"
+                : "mb-1 block text-xs font-medium text-slate-600"
+            }
+          >
             Per Page
           </label>
           <select
             value={perPage}
             onChange={onPerPageChange}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           >
             <option value="5">5</option>
             <option value="10">10</option>
@@ -89,9 +129,9 @@ function SearchFilter({
         <button
           type="button"
           onClick={onReset}
-          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          className="h-10 min-w-0 self-end rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 md:col-span-2 lg:col-span-1 lg:w-[72px]"
         >
-          Reset Filters
+          Reset
         </button>
       </div>
     </section>

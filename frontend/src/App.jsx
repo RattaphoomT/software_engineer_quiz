@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import api from "./services/api";
 import AddPlaceForm from "./components/AddPlaceForm";
@@ -8,6 +8,7 @@ import PlacesTable from "./components/PlacesTable";
 
 function App() {
   const [places, setPlaces] = useState([]);
+  const [mapPlaces, setMapPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [geometryTypeFilter, setGeometryTypeFilter] = useState("");
@@ -16,18 +17,33 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [activePanel, setActivePanel] = useState("browse");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedPlace, setSelectedPlace] = useState(null);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await api.get("/places/categories");
-      setCategories(response.data.data || []);
-    } catch (error) {
-      console.error(
-        "Failed to fetch categories:",
-        error.response?.data || error,
-      );
-    }
-  };
+  const ToggleSidebarIcon = isSidebarOpen ? (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 6l-6 6 6 6" />
+    </svg>
+  ) : (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
+    </svg>
+  );
 
   const [form, setForm] = useState({
     name: "",
@@ -42,7 +58,7 @@ function App() {
     category: "",
   });
 
-  const showSuccess = (message) => {
+  const showSuccess = useCallback((message) => {
     Swal.fire({
       icon: "success",
       title: "Success",
@@ -50,16 +66,16 @@ function App() {
       timer: 1600,
       showConfirmButton: false,
     });
-  };
+  }, []);
 
-  const showError = (message) => {
+  const showError = useCallback((message) => {
     Swal.fire({
       icon: "error",
       title: "Error",
       text: message,
       confirmButtonText: "OK",
     });
-  };
+  }, []);
 
   const [editingPlaceId, setEditingPlaceId] = useState(null);
 
@@ -72,7 +88,19 @@ function App() {
     to: null,
   });
 
-  const fetchPlaces = async () => {
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await api.get("/places/categories");
+      setCategories(response.data.data || []);
+    } catch (error) {
+      console.error(
+        "Failed to fetch categories:",
+        error.response?.data || error,
+      );
+    }
+  }, []);
+
+  const fetchPlaces = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -87,7 +115,6 @@ function App() {
       });
 
       setPlaces(response.data.features || []);
-
       setPagination(
         response.data.meta || {
           current_page: 1,
@@ -98,27 +125,63 @@ function App() {
           to: null,
         },
       );
-
-      setPlaces(response.data.features || []);
     } catch (error) {
       console.error("Failed to fetch places:", error.response?.data || error);
       showError("Failed to fetch places");
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryFilter, geometryTypeFilter, page, perPage, search, showError]);
+
+  const fetchMapPlaces = useCallback(async () => {
+    try {
+      const response = await api.get("/places", {
+        params: {
+          search: search || undefined,
+          geometry_type: geometryTypeFilter || undefined,
+          category: categoryFilter || undefined,
+          all: true,
+        },
+      });
+
+      setMapPlaces(response.data.features || []);
+    } catch (error) {
+      console.error("Failed to fetch map places:", error.response?.data || error);
+      showError("Failed to fetch map places");
+    }
+  }, [categoryFilter, geometryTypeFilter, search, showError]);
 
   useEffect(() => {
     fetchPlaces();
-  }, [search, geometryTypeFilter, categoryFilter, page, perPage]);
+  }, [fetchPlaces]);
 
   useEffect(() => {
-    setPage(1);
-  }, [search, geometryTypeFilter, categoryFilter, perPage]);
+    fetchMapPlaces();
+  }, [fetchMapPlaces]);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
+
+  const handleSearchChange = (event) => {
+    setSearch(event.target.value);
+    setPage(1);
+  };
+
+  const handleGeometryTypeFilterChange = (event) => {
+    setGeometryTypeFilter(event.target.value);
+    setPage(1);
+  };
+
+  const handleCategoryFilterChange = (event) => {
+    setCategoryFilter(event.target.value);
+    setPage(1);
+  };
+
+  const handlePerPageChange = (event) => {
+    setPerPage(Number(event.target.value));
+    setPage(1);
+  };
 
   const handlePointChange = (index, field, value) => {
     setForm((prev) => {
@@ -362,7 +425,7 @@ function App() {
       }
 
       resetForm();
-      await fetchPlaces();
+      await Promise.all([fetchPlaces(), fetchMapPlaces(), fetchCategories()]);
     } catch (error) {
       console.error("Failed to save place:", error.response?.data || error);
 
@@ -392,7 +455,7 @@ function App() {
     try {
       await api.delete(`/places/${id}`);
 
-      await fetchPlaces();
+      await Promise.all([fetchPlaces(), fetchMapPlaces(), fetchCategories()]);
 
       showSuccess("Place deleted successfully.");
     } catch (error) {
@@ -452,6 +515,7 @@ function App() {
 
   const handleEdit = (place) => {
     setEditingPlaceId(place.id);
+    setActivePanel("add");
 
     setForm({
       name: place.properties?.name || "",
@@ -460,109 +524,158 @@ function App() {
       province: place.properties?.province || "",
       category: place.properties?.category || "",
     });
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
-              Software Engineer Quiz
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">
-              Mini Spatial Data Platform
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Manage GeoJSON places with Laravel API, React, MapLibre and
-              TailwindCSS.
-            </p>
+    <div className="relative h-[100dvh] overflow-hidden bg-slate-950 text-slate-900">
+      <MapView
+        places={mapPlaces}
+        selectedCategory={categoryFilter}
+        focusedPlace={selectedPlace}
+        onFeatureSelect={setSelectedPlace}
+      />
+
+      <div
+        className={`fixed left-3 right-3 top-3 z-20 transition-all duration-300 sm:left-4 sm:right-4 md:right-auto md:top-4 md:max-w-[760px] lg:max-w-[920px] ${
+          isSidebarOpen
+            ? "md:left-[352px] lg:left-[432px]"
+            : "md:left-20"
+        }`}
+      >
+        <SearchFilter
+          variant="bar"
+          search={search}
+          geometryTypeFilter={geometryTypeFilter}
+          categoryFilter={categoryFilter}
+          categories={categories}
+          perPage={perPage}
+          onSearchChange={handleSearchChange}
+          onGeometryTypeFilterChange={handleGeometryTypeFilterChange}
+          onCategoryFilterChange={handleCategoryFilterChange}
+          onPerPageChange={handlePerPageChange}
+          onReset={() => {
+            setSearch("");
+            setGeometryTypeFilter("");
+            setCategoryFilter("");
+            setPerPage(10);
+            setPage(1);
+          }}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setIsSidebarOpen((current) => !current)}
+        aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
+        title={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
+        className={`fixed z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-xl ring-1 ring-slate-900/10 transition-all duration-300 hover:text-blue-700 ${
+          isSidebarOpen
+            ? "bottom-[calc(58dvh+0.75rem)] right-4 md:bottom-auto md:right-auto md:left-[316px] md:top-1/2 md:-translate-y-1/2 lg:left-[396px]"
+            : "bottom-4 left-4 md:bottom-auto md:top-4"
+        }`}
+      >
+        {ToggleSidebarIcon}
+      </button>
+
+      <aside
+        className={`fixed bottom-0 left-0 right-0 z-10 flex max-h-[58dvh] min-h-0 flex-col overflow-hidden rounded-t-2xl bg-white/95 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur transition-transform duration-300 sm:bottom-3 sm:left-3 sm:right-3 sm:rounded-2xl md:bottom-4 md:left-4 md:right-auto md:top-4 md:max-h-none md:w-[312px] md:rounded-xl lg:w-[392px] ${
+          isSidebarOpen
+            ? "translate-y-0 md:translate-x-0 md:translate-y-0"
+            : "translate-y-[calc(100%+1rem)] md:-translate-x-[calc(100%+1rem)] md:translate-y-0"
+        }`}
+      >
+        <div className="border-b border-slate-200 px-4 py-3 lg:py-4">
+          <p className="text-xs font-medium uppercase text-blue-600">
+            Software Engineer Quiz
+          </p>
+          <div className="mt-1 flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-lg font-semibold text-slate-950 lg:text-xl">
+                Mini Spatial Data Platform
+              </h1>
+              <p className="mt-1 hidden text-xs text-slate-500 sm:block">
+                Laravel API, React, MapLibre and TailwindCSS.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center ring-1 ring-slate-200">
-              <p className="text-2xl font-bold text-slate-950">
-                {places.length}
+          <div className="mt-3 grid grid-cols-3 gap-2 lg:mt-4">
+            <div className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+              <p className="text-base font-semibold text-slate-950 lg:text-lg">
+                {pagination.total}
               </p>
-              <p className="text-xs font-medium text-slate-500">Features</p>
+              <p className="text-[11px] font-normal text-slate-500">
+                Features
+              </p>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center ring-1 ring-slate-200">
-              <p className="text-2xl font-bold text-slate-950">
-                {new Set(places.map((place) => place.geometry?.type)).size}
+            <div className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+              <p className="text-base font-semibold text-slate-950 lg:text-lg">
+                {new Set(mapPlaces.map((place) => place.geometry?.type)).size}
               </p>
-              <p className="text-xs font-medium text-slate-500">Types</p>
+              <p className="text-[11px] font-normal text-slate-500">Types</p>
             </div>
 
-            <div className="rounded-2xl bg-blue-50 px-4 py-3 text-center ring-1 ring-blue-100">
-              <p className="text-2xl font-bold text-blue-700">API</p>
-              <p className="text-xs font-medium text-blue-600">Live Data</p>
+            <div className="rounded-lg bg-blue-50 px-3 py-2 ring-1 ring-blue-100">
+              <p className="text-base font-semibold text-blue-700 lg:text-lg">API</p>
+              <p className="text-[11px] font-normal text-blue-600">Live</p>
             </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 rounded-lg bg-slate-100 p-1 lg:mt-4">
+            <button
+              type="button"
+              onClick={() => setActivePanel("browse")}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                activePanel === "browse"
+                  ? "bg-white text-slate-950 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Browse
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePanel("add")}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                activePanel === "add"
+                  ? "bg-white text-slate-950 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              {editingPlaceId ? "Edit" : "Add"}
+            </button>
           </div>
         </div>
-      </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-          <AddPlaceForm
-            form={form}
-            isEditing={Boolean(editingPlaceId)}
-            onChange={handleChange}
-            onPointChange={handlePointChange}
-            onAddPoint={addPoint}
-            onRemovePoint={removePoint}
-            onSubmit={handleSubmit}
-            onCancelEdit={resetForm}
-          />
-
-          <div className="min-w-0">
-            <MapView
-              places={places}
-              categories={categories}
-              selectedCategory={categoryFilter}
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4 lg:py-4">
+          {activePanel === "browse" ? (
+            <div>
+              <PlacesTable
+                places={places}
+                loading={loading}
+                pagination={pagination}
+                selectedPlaceId={selectedPlace?.id}
+                onPageChange={setPage}
+                onSelect={setSelectedPlace}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </div>
+          ) : (
+            <AddPlaceForm
+              form={form}
+              isEditing={Boolean(editingPlaceId)}
+              onChange={handleChange}
+              onPointChange={handlePointChange}
+              onAddPoint={addPoint}
+              onRemovePoint={removePoint}
+              onSubmit={handleSubmit}
+              onCancelEdit={resetForm}
             />
-          </div>
-        </section>
-
-        <section className="mt-6 space-y-6">
-          <SearchFilter
-            search={search}
-            geometryTypeFilter={geometryTypeFilter}
-            categoryFilter={categoryFilter}
-            categories={categories}
-            perPage={perPage}
-            onSearchChange={(event) => setSearch(event.target.value)}
-            onGeometryTypeFilterChange={(event) =>
-              setGeometryTypeFilter(event.target.value)
-            }
-            onCategoryFilterChange={(event) =>
-              setCategoryFilter(event.target.value)
-            }
-            onPerPageChange={(event) => setPerPage(Number(event.target.value))}
-            onReset={() => {
-              setSearch("");
-              setGeometryTypeFilter("");
-              setCategoryFilter("");
-              setPerPage(10);
-              setPage(1);
-            }}
-          />
-
-          <PlacesTable
-            places={places}
-            loading={loading}
-            pagination={pagination}
-            onPageChange={setPage}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        </section>
-      </main>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

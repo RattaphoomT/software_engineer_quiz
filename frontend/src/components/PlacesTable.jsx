@@ -2,143 +2,130 @@ function PlacesTable({
   places,
   loading,
   pagination,
+  selectedPlaceId,
   onPageChange,
+  onSelect,
   onEdit,
   onDelete,
 }) {
   return (
-    <section className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+    <section className="min-w-0 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-950">Places</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            GeoJSON features returned from Laravel API.
-          </p>
+          <h2 className="text-base font-semibold text-slate-950">Places</h2>
+          <p className="mt-1 text-xs text-slate-500">Laravel API results</p>
         </div>
 
         {loading && (
-          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
             Loading...
           </span>
         )}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                ID
-              </th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Name
-              </th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Type
-              </th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Province
-              </th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Category
-              </th>
-              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Action
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-100 bg-white">
-            {places.length === 0 ? (
-              <tr>
-                <td
-                  colSpan="6"
-                  className="px-5 py-10 text-center text-sm text-slate-500"
-                >
-                  No places found
-                </td>
-              </tr>
-            ) : (
-              places.map((place) => (
-                <tr key={place.id} className="hover:bg-slate-50">
-                  <td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-slate-700">
-                    #{place.id}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <div className="font-semibold text-slate-900">
-                      {place.properties?.name}
-                    </div>
-                    <div className="mt-1 max-w-md truncate text-xs text-slate-400">
-                      {JSON.stringify(place.geometry?.coordinates)}
-                    </div>
-                  </td>
-
-                  <td className="whitespace-nowrap px-5 py-4">
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
+      <div className="divide-y divide-slate-100">
+        {places.length === 0 ? (
+          <div className="px-4 py-10 text-center text-sm text-slate-500">
+            No places found
+          </div>
+        ) : (
+          places.map((place) => (
+            <article
+              key={place.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelect(place)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(place);
+                }
+              }}
+              className={`cursor-pointer px-4 py-3 outline-none transition hover:bg-blue-50/60 focus:bg-blue-50 ${
+                selectedPlaceId === place.id
+                  ? "bg-blue-50 ring-1 ring-inset ring-blue-100"
+                  : ""
+              }`}
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 text-xs font-normal text-slate-400">
+                      #{place.id}
+                    </span>
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-100">
                       {place.geometry?.type}
                     </span>
-                  </td>
+                  </div>
 
-                  <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
+                  <h3 className="mt-1 truncate text-sm font-medium text-slate-950">
+                    {place.properties?.name}
+                  </h3>
+
+                  <p className="mt-1 truncate text-xs text-slate-500">
+                    {place.properties?.category || "-"} ·{" "}
                     {place.properties?.province || "-"}
-                  </td>
+                  </p>
 
-                  <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
-                    {place.properties?.category || "-"}
-                  </td>
+                  <p className="mt-1 truncate text-[11px] text-slate-400">
+                    {JSON.stringify(place.geometry?.coordinates)}
+                  </p>
+                </div>
 
-                  <td className="whitespace-nowrap px-5 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => onEdit(place)}
-                        className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
-                      >
-                        Edit
-                      </button>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:gap-1">
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEdit(place);
+                    }}
+                    className="rounded-md bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                  >
+                    Edit
+                  </button>
 
-                      <button
-                        onClick={() => onDelete(place.id)}
-                        className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 transition hover:bg-red-100"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDelete(place.id);
+                    }}
+                    className="rounded-md bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))
+        )}
       </div>
-      <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-500">
+      <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3">
+        <p className="text-xs text-slate-500">
           Showing{" "}
-          <span className="font-semibold text-slate-700">
+          <span className="font-medium text-slate-700">
             {pagination.from || 0}
           </span>{" "}
           to{" "}
-          <span className="font-semibold text-slate-700">
+          <span className="font-medium text-slate-700">
             {pagination.to || 0}
           </span>{" "}
           of{" "}
-          <span className="font-semibold text-slate-700">
+          <span className="font-medium text-slate-700">
             {pagination.total || 0}
           </span>{" "}
           results
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 items-center gap-2 sm:grid-cols-[1fr_auto_1fr]">
           <button
             type="button"
             disabled={pagination.current_page <= 1}
             onClick={() => onPageChange(pagination.current_page - 1)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
           </button>
 
-          <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">
+          <span className="order-first col-span-2 rounded-md bg-slate-100 px-3 py-1.5 text-center text-xs font-medium text-slate-700 sm:order-none sm:col-span-1">
             Page {pagination.current_page || 1} / {pagination.last_page || 1}
           </span>
 
@@ -146,7 +133,7 @@ function PlacesTable({
             type="button"
             disabled={pagination.current_page >= pagination.last_page}
             onClick={() => onPageChange(pagination.current_page + 1)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
           </button>

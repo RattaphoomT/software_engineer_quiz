@@ -1,0 +1,328 @@
+{
+  "info": {
+    "name": "Mini Spatial Data Platform",
+    "description": "Postman collection for testing the Laravel GeoJSON places API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "place_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "List Places",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/places?page=1&per_page=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "per_page",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Search and Filter Places",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+                    "raw": "{{base_url}}/places?search=ป.ต.ท.&geometry_type=Point&category=สถานีบริการน้ำมัน&page=1&per_page=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places"
+          ],
+          "query": [
+            {
+              "key": "search",
+                            "value": "ป.ต.ท."
+            },
+            {
+              "key": "geometry_type",
+              "value": "Point"
+            },
+            {
+              "key": "category",
+                            "value": "สถานีบริการน้ำมัน"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "per_page",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "List All Filtered Places for Map",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+                    "raw": "{{base_url}}/places?search=ป.ต.ท.&category=สถานีบริการน้ำมัน&all=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places"
+          ],
+          "query": [
+            {
+              "key": "search",
+                            "value": "ป.ต.ท."
+            },
+            {
+              "key": "category",
+                            "value": "สถานีบริการน้ำมัน"
+            },
+            {
+              "key": "all",
+              "value": "true"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Categories",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/places/categories",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places",
+            "categories"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Place",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.data && response.data.id) {",
+              "  pm.collectionVariables.set('place_id', response.data.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Demo Place\",\n  \"geometry\": {\n    \"type\": \"Point\",\n    \"coordinates\": [100.5018, 13.7563]\n  },\n  \"properties\": {\n    \"province\": \"Bangkok\",\n    \"category\": \"Postman Demo\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/places",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Place",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/places/{{place_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places",
+            "{{place_id}}"
+          ]
+        }
+      }
+    },
+        {
+            "name": "Update Place",
+            "request": {
+                "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Postman Demo Place\",\n  \"geometry\": {\n    \"type\": \"LineString\",\n    \"coordinates\": [\n      [100.5018, 13.7563],\n      [100.5231, 13.7367]\n    ]\n  },\n  \"properties\": {\n    \"province\": \"Bangkok\",\n    \"category\": \"Updated Route\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/places/{{place_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places",
+            "{{place_id}}"
+          ]
+                }
+            }
+        },
+        {
+            "name": "Partial Update Place",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"name\": \"Patched Postman Demo Place\",\n  \"geometry\": {\n    \"type\": \"Point\",\n    \"coordinates\": [100.5018, 13.7563]\n  },\n  \"properties\": {\n    \"province\": \"Bangkok\",\n    \"category\": \"Patched Place\"\n  }\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/places/{{place_id}}",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "places",
+                        "{{place_id}}"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Delete Place",
+            "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/places/{{place_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places",
+            "{{place_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Validation Error Example",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Invalid Coordinates\",\n  \"geometry\": {\n    \"type\": \"Point\",\n    \"coordinates\": [200, 95]\n  },\n  \"properties\": {\n    \"category\": \"Invalid\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/places",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "places"
+          ]
+        }
+      }
+    }
+  ]
+}

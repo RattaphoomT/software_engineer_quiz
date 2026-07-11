@@ -20,7 +20,7 @@ class PlaceController extends Controller
         $query = Place::query();
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         if ($request->filled('geometry_type')) {
@@ -29,6 +29,26 @@ class PlaceController extends Controller
 
         if ($request->filled('category')) {
             $query->where('properties->category', $request->category);
+        }
+
+        if ($request->boolean('all')) {
+            $places = $query
+                ->latest()
+                ->get();
+
+            return response()->json([
+                'type' => 'FeatureCollection',
+                'features' => PlaceResource::collection($places),
+                'meta' => [
+                    'total' => $places->count(),
+                ],
+                'links' => [
+                    'first' => null,
+                    'last' => null,
+                    'prev' => null,
+                    'next' => null,
+                ],
+            ]);
         }
 
         $perPage = (int) $request->get('per_page', 10);
@@ -66,6 +86,7 @@ class PlaceController extends Controller
             ->map(fn ($place) => $place->properties['category'] ?? null)
             ->filter()
             ->unique()
+            ->sort()
             ->values();
 
         return response()->json([

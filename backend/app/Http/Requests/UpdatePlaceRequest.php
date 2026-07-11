@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesGeoJsonGeometry;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePlaceRequest extends FormRequest
 {
+    use ValidatesGeoJsonGeometry;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -30,17 +33,17 @@ class UpdatePlaceRequest extends FormRequest
             'geometry.type' => [
                 'required',
                 'string',
-                'in:Point,MultiPoint,LineString,MultiLineString,Polygon,MultiPolygon'
+                'in:Point,MultiPoint,LineString,MultiLineString,Polygon,MultiPolygon',
             ],
 
             'geometry.coordinates' => [
                 'required',
-                'array'
+                'array',
             ],
 
             'properties' => [
                 'nullable',
-                'array'
+                'array',
             ],
         ];
     }

@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesGeoJsonGeometry;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePlaceRequest extends FormRequest
 {
+    use ValidatesGeoJsonGeometry;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -30,17 +33,17 @@ class StorePlaceRequest extends FormRequest
             'geometry.type' => [
                 'required',
                 'string',
-                'in:Point,MultiPoint,LineString,MultiLineString,Polygon,MultiPolygon'
+                'in:Point,MultiPoint,LineString,MultiLineString,Polygon,MultiPolygon',
             ],
 
             'geometry.coordinates' => [
                 'required',
-                'array'
+                'array',
             ],
 
             'properties' => [
                 'nullable',
-                'array'
+                'array',
             ],
         ];
     }
@@ -52,11 +55,9 @@ class StorePlaceRequest extends FormRequest
 
             'geometry.required' => 'Geometry is required.',
 
-            'geometry.type.in' =>
-                'Geometry type must be Point, LineString or Polygon.',
+            'geometry.type.in' => 'Geometry type must be Point, MultiPoint, LineString, MultiLineString, Polygon or MultiPolygon.',
 
-            'geometry.coordinates.required' =>
-                'Coordinates are required.',
+            'geometry.coordinates.required' => 'Coordinates are required.',
         ];
     }
 }
