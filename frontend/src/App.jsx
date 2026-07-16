@@ -18,7 +18,13 @@ function App() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [activePanel, setActivePanel] = useState("browse");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+
+    return window.matchMedia("(min-width: 768px)").matches;
+  });
   const [selectedPlace, setSelectedPlace] = useState(null);
 
   const ToggleSidebarIcon = isSidebarOpen ? (
@@ -162,6 +168,21 @@ function App() {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+
+    const handleBreakpointChange = (event) => {
+      setIsSidebarOpen(event.matches);
+    };
+
+    setIsSidebarOpen(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleBreakpointChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleBreakpointChange);
+    };
+  }, []);
 
   const handleSearchChange = (event) => {
     setSearch(event.target.value);

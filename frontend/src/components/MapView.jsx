@@ -189,12 +189,23 @@ function MapView({
     if (!map) return;
 
     const resizeMap = () => map.resize();
+    const resizeMapSoon = () => {
+      requestAnimationFrame(resizeMap);
+      window.setTimeout(resizeMap, 250);
+    };
 
-    resizeMap();
+    resizeMapSoon();
     window.addEventListener("resize", resizeMap);
+
+    const resizeObserver = new ResizeObserver(resizeMapSoon);
+
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
 
     return () => {
       window.removeEventListener("resize", resizeMap);
+      resizeObserver.disconnect();
     };
   }, []);
 
@@ -642,12 +653,19 @@ function MapView({
     };
 
     const updateMap = () => {
+      map.resize();
+
       if (map.getSource("places")) {
         map.getSource("places").setData(geojsonData);
         map.getSource("place-points")?.setData(pointGeojsonData);
       } else {
         addLayers();
       }
+
+      requestAnimationFrame(() => {
+        map.resize();
+        map.triggerRepaint();
+      });
 
       if (places?.length > 0) {
         const pointFeature = places.find(
